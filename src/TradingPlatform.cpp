@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <algorithm>
 
 TradingPlatform::TradingPlatform() : nextClientId(1) {}
 
@@ -210,7 +211,7 @@ static std::string readString(const std::string& prompt) {
 }
 
 void TradingPlatform::runMenu() {
-    int choice = 0;
+    int choice = -1;
     while (choice != 0) {
         std::cout << "\n========== Mini Trading Platform ==========\n";
         std::cout << " 1.  Create client\n";
