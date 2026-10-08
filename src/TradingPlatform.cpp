@@ -49,10 +49,20 @@ void TradingPlatform::listClients() const {
 }
 
 void TradingPlatform::depositCash(int clientId, double amount) {
+    if (amount <= 0) throw InvalidOrderException("amount must be positive");
     Client* c = findClient(clientId);
     c->deposit(amount);
     std::cout << "Deposited $" << amount << " to " << c->getName()
               << ". New balance: $" << c->getCashBalance() << "\n";
+}
+
+void TradingPlatform::depositShares(int clientId, const std::string& symbol, int qty) {
+    if (qty <= 0) throw InvalidOrderException("quantity must be positive");
+    Client* c = findClient(clientId);
+    Instrument* instr = findInstrument(symbol);
+    c->getPortfolio().addPosition(instr, qty, instr->getMarketPrice());
+    std::cout << "Deposited " << qty << " " << symbol << " to " << c->getName()
+              << " at $" << instr->getMarketPrice() << "\n";
 }
 
 void TradingPlatform::showClientReport(int clientId) const {
@@ -69,6 +79,7 @@ void TradingPlatform::showClientReport(int clientId) const {
 
 void TradingPlatform::createInstrument(const std::string& symbol, const std::string& name, double price) {
     if (instruments.count(symbol)) { std::cout << "Instrument already exists.\n"; return; }
+    if (price <= 0) throw InvalidOrderException("price must be positive");
     instruments[symbol] = new Instrument(symbol, name, price);
     std::cout << "Instrument created: " << *instruments[symbol] << "\n";
 }
@@ -79,6 +90,7 @@ void TradingPlatform::listInstruments() const {
 }
 
 void TradingPlatform::placeMarketBuyOrder(int clientId, const std::string& symbol, int qty) {
+    if (qty <= 0) throw InvalidOrderException("quantity must be positive");
     Client* c = findClient(clientId);
     Instrument* instr = findInstrument(symbol);
     double cost = qty * instr->getMarketPrice();
@@ -90,6 +102,7 @@ void TradingPlatform::placeMarketBuyOrder(int clientId, const std::string& symbo
 }
 
 void TradingPlatform::placeMarketSellOrder(int clientId, const std::string& symbol, int qty) {
+    if (qty <= 0) throw InvalidOrderException("quantity must be positive");
     Client* c = findClient(clientId);
     Instrument* instr = findInstrument(symbol);
     if (c->getPortfolio().getQuantity(symbol) < qty)
@@ -100,6 +113,8 @@ void TradingPlatform::placeMarketSellOrder(int clientId, const std::string& symb
 }
 
 void TradingPlatform::placeLimitBuyOrder(int clientId, const std::string& symbol, int qty, double limitPrice) {
+    if (qty <= 0) throw InvalidOrderException("quantity must be positive");
+    if (limitPrice <= 0) throw InvalidOrderException("limit price must be positive");
     Client* c = findClient(clientId);
     Instrument* instr = findInstrument(symbol);
     double cost = qty * limitPrice;
@@ -111,6 +126,8 @@ void TradingPlatform::placeLimitBuyOrder(int clientId, const std::string& symbol
 }
 
 void TradingPlatform::placeLimitSellOrder(int clientId, const std::string& symbol, int qty, double limitPrice) {
+    if (qty <= 0) throw InvalidOrderException("quantity must be positive");
+    if (limitPrice <= 0) throw InvalidOrderException("limit price must be positive");
     Client* c = findClient(clientId);
     Instrument* instr = findInstrument(symbol);
     if (c->getPortfolio().getQuantity(symbol) < qty)
@@ -230,6 +247,7 @@ void TradingPlatform::runMenu() {
         std::cout << " 14. Display All Portfolios\n";
         std::cout << " 15. Client Report\n";
         std::cout << " 16. Trading Report\n";
+        std::cout << " 17. Deposit shares\n";
         std::cout << " 0.  Exit\n";
         std::cout << ">>> ";
 
@@ -306,6 +324,13 @@ void TradingPlatform::runMenu() {
                     break;
                 }
                 case 16: displayTradingReport(); break;
+                case 17: {
+                    int id = readInt("Client ID: ");
+                    std::string sym = readString("Symbol: ");
+                    int qty = readInt("Quantity: ");
+                    depositShares(id, sym, qty);
+                    break;
+                }
                 case 0: std::cout << "Goodbye!\n"; break;
                 default: std::cout << "Unknown option.\n";
             }

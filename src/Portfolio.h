@@ -12,6 +12,7 @@ public:
     void removePosition(Instrument* instrument, int qty);
     bool hasPosition(const std::string& symbol) const;
     int getQuantity(const std::string& symbol) const;
+    double getAvgPrice(const std::string& symbol) const;
 
     double getTotalMarketValue() const;
     double getTotalUnrealizedPnL() const;

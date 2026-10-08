@@ -27,6 +27,7 @@ public:
     void createClient(const std::string& name);
     void listClients() const;
     void depositCash(int clientId, double amount);
+    void depositShares(int clientId, const std::string& symbol, int qty);
     void showClientReport(int clientId) const;
 
     // Instrument management

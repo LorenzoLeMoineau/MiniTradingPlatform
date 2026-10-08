@@ -12,15 +12,15 @@ OrderBook::~OrderBook() {
 const std::string& OrderBook::getSymbol() const { return symbol; }
 
 void OrderBook::sortBuyOrders() {
-    // Highest price first
-    std::sort(buyOrders.begin(), buyOrders.end(), [](Order* a, Order* b) {
+    // Highest price first; stable_sort keeps time priority between equal prices
+    std::stable_sort(buyOrders.begin(), buyOrders.end(), [](Order* a, Order* b) {
         return a->getPrice() > b->getPrice();
     });
 }
 
 void OrderBook::sortSellOrders() {
-    // Lowest price first
-    std::sort(sellOrders.begin(), sellOrders.end(), [](Order* a, Order* b) {
+    // Lowest price first; stable_sort keeps time priority between equal prices
+    std::stable_sort(sellOrders.begin(), sellOrders.end(), [](Order* a, Order* b) {
         return a->getPrice() < b->getPrice();
     });
 }
@@ -42,8 +42,8 @@ std::vector<Trade*> OrderBook::matchOrders() {
         Order* buy  = buyOrders.front();
         Order* sell = sellOrders.front();
 
-        if (!buy->isActive())  { buyOrders.erase(buyOrders.begin()); continue; }
-        if (!sell->isActive()) { sellOrders.erase(sellOrders.begin()); continue; }
+        if (!buy->isActive())  { delete buy;  buyOrders.erase(buyOrders.begin()); continue; }
+        if (!sell->isActive()) { delete sell; sellOrders.erase(sellOrders.begin()); continue; }
 
         if (buy->getPrice() >= sell->getPrice()) {
             int qty = std::min(buy->getRemainingQty(), sell->getRemainingQty());
@@ -55,6 +55,10 @@ std::vector<Trade*> OrderBook::matchOrders() {
             );
             trades.push_back(trade);
 
+            // Realized P/L for the seller, computed before the position is reduced
+            double avgCost = sell->getClient()->getPortfolio().getAvgPrice(sell->getInstrument()->getSymbol());
+            sell->getClient()->addRealizedPnL((tradePrice - avgCost) * qty);
+
             // Update cash and portfolios
             double total = qty * tradePrice;
             buy->getClient()->debit(total);
@@ -63,16 +67,14 @@ std::vector<Trade*> OrderBook::matchOrders() {
             buy->getClient()->getPortfolio().addPosition(buy->getInstrument(), qty, tradePrice);
             sell->getClient()->getPortfolio().removePosition(sell->getInstrument(), qty);
 
-            // Realized P/L for seller
-            double avgCost = sell->getClient()->getPortfolio().hasPosition(sell->getInstrument()->getSymbol())
-                ? 0 : 0; // already removed, simplified
-            sell->getClient()->addRealizedPnL(total);
+            // The last traded price becomes the instrument's market price
+            buy->getInstrument()->setMarketPrice(tradePrice);
 
             buy->fill(qty);
             sell->fill(qty);
 
-            if (!buy->isActive())  buyOrders.erase(buyOrders.begin());
-            if (!sell->isActive()) sellOrders.erase(sellOrders.begin());
+            if (!buy->isActive())  { delete buy;  buyOrders.erase(buyOrders.begin()); }
+            if (!sell->isActive()) { delete sell; sellOrders.erase(sellOrders.begin()); }
         } else {
             break; // No more matches possible
         }

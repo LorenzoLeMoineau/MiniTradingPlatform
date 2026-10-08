@@ -28,6 +28,11 @@ int Portfolio::getQuantity(const std::string& symbol) const {
     return (it != positions.end()) ? it->second.getQuantity() : 0;
 }
 
+double Portfolio::getAvgPrice(const std::string& symbol) const {
+    auto it = positions.find(symbol);
+    return (it != positions.end()) ? it->second.getAvgAcquisitionPrice() : 0.0;
+}
+
 double Portfolio::getTotalMarketValue() const {
     double total = 0;
     for (const auto& [sym, pos] : positions)
